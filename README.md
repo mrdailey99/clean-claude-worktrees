@@ -142,7 +142,16 @@ The skill runs 7 steps:
 
 - [Claude Code](https://claude.ai/code) CLI
 - Git 2.5+ (for worktree support)
+- A bash-compatible shell (macOS/Linux: built-in; Windows: [Git Bash](https://git-scm.com/downloads) or WSL)
 - `gh` CLI is not required
+
+## Platform notes
+
+**macOS / Linux:** fully supported.
+
+**Windows:** the skill's cleanup commands (`find`, `rm -rf`, `touch`, etc.) are Unix shell commands. They work when Claude Code is running through Git Bash or WSL. They will not work in a native PowerShell or CMD environment. The install one-liner in the PowerShell section handles installation only — the skill itself still needs Git Bash or WSL at runtime.
+
+If you're on Windows and `git` works in your terminal, Git Bash is almost certainly already on your machine and Claude Code will use it automatically.
 
 ---
 
