@@ -17,17 +17,39 @@ A Claude Code skill (`/sweep`) that performs a **session sweep** — finding and
 
 ## Installation
 
-Copy the skill into your Claude Code skills directory:
+**One-liner (no git required):**
 
 ```bash
 # macOS / Linux
-cp -r skills/sweep ~/.claude/skills/sweep
-
-# Windows (Git Bash / WSL)
-cp -r skills/sweep /c/Users/<your-username>/.claude/skills/sweep
+curl -fsSL https://github.com/mrdailey99/clean-claude-worktrees/archive/refs/heads/master.tar.gz \
+  | tar xz -C /tmp \
+  && cp -r /tmp/clean-claude-worktrees-master/skills/sweep ~/.claude/skills/ \
+  && rm -rf /tmp/clean-claude-worktrees-master
 ```
 
-That's it. Claude Code picks up skills automatically — no restart needed. The `/sweep` command will be available in your next conversation.
+```powershell
+# Windows (PowerShell)
+Invoke-WebRequest https://github.com/mrdailey99/clean-claude-worktrees/archive/refs/heads/master.zip `
+  -OutFile $env:TEMP\sweep.zip
+Expand-Archive $env:TEMP\sweep.zip $env:TEMP\sweep-skill
+Copy-Item -Recurse $env:TEMP\sweep-skill\clean-claude-worktrees-master\skills\sweep `
+  $env:USERPROFILE\.claude\skills\sweep
+Remove-Item -Recurse $env:TEMP\sweep.zip, $env:TEMP\sweep-skill
+```
+
+**Via git clone:**
+
+```bash
+git clone https://github.com/mrdailey99/clean-claude-worktrees.git
+cd clean-claude-worktrees
+bash install.sh
+```
+
+> **Note:** If you download the zip from GitHub and extract it manually, run `bash install.sh`
+> from the extracted folder — don't copy the zip contents directly into `.claude/skills/`,
+> as the folder structure won't be right.
+
+Claude Code picks up skills automatically — no restart needed. The `/sweep` command will be available in your next conversation.
 
 ---
 
