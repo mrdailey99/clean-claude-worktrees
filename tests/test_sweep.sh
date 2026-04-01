@@ -137,6 +137,21 @@ assert_exit "empty path vs root → not main"               1  is_main_worktree 
 
 # ─────────────────────────────────────────────
 echo ""
+echo "=== session_inside_worktree ==="
+
+WT="/home/user/git/repo/worktrees/feature-foo"
+
+assert_exit "pwd equals worktree root → inside"           0  session_inside_worktree "$WT"    "$WT"
+assert_exit "pwd is subdir of worktree → inside"          0  session_inside_worktree "$WT"    "$WT/src/components"
+assert_exit "trailing slash on worktree → inside"         0  session_inside_worktree "$WT/"   "$WT/src"
+assert_exit "pwd is sibling worktree → not inside"        1  session_inside_worktree "$WT"    "/home/user/git/repo/worktrees/other-branch"
+assert_exit "pwd is repo root → not inside"               1  session_inside_worktree "$WT"    "/home/user/git/repo"
+assert_exit "worktree path is prefix but not parent → not inside" \
+                                                          1  session_inside_worktree "$WT"    "/home/user/git/repo/worktrees/feature-foo-extra"
+assert_exit "pwd is unrelated → not inside"               1  session_inside_worktree "$WT"    "/home/otheruser/projects"
+
+# ─────────────────────────────────────────────
+echo ""
 echo "─────────────────────────────────────"
 echo "Results: $PASS passed, $FAIL failed"
 

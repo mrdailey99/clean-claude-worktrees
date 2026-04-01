@@ -164,6 +164,23 @@ A worktree is **stale** when `MOST_RECENT < CUTOFF`.
 Display the age using `MOST_RECENT`, not the commit date, so the reported age
 reflects real inactivity rather than when commits happened to be authored.
 
+**Before marking any worktree stale, apply these hard exclusions — skip it entirely if any apply:**
+
+```bash
+CURRENT_DIR=$(pwd)
+
+# 1. The sweep is running inside this worktree (e.g. the user's active terminal/IDE session)
+case "$CURRENT_DIR" in
+  "<worktree-path>"*) echo "SKIP: current session is inside this worktree"; continue ;;
+esac
+
+# 2. Any other open worktree in the same repo has this branch checked out
+git -C "<repo-root>" worktree list --porcelain \
+  | grep -q "^branch refs/heads/<branch-name>$" && echo "SKIP: branch checked out in another worktree"
+```
+
+If either exclusion matches, remove the worktree from the candidate list and do not include it in the sweep plan. Do not flag it as an error — just silently skip it.
+
 Also mark as stale: orphaned Claude worktree records with no corresponding git path.
 
 If **positional worktree names** were given, filter to only those whose path
@@ -290,13 +307,21 @@ git -C "<repo-root>" worktree prune 2>&1
 
 ### 6d. Delete the branch (if DELETE_BRANCHES=true)
 
+First verify no remaining worktree has this branch checked out (the Step 3 guard
+catches this before the plan is built, but double-check here as a safety net):
+
+```bash
+STILL_CHECKED_OUT=$(git -C "<repo-root>" worktree list --porcelain \
+  | grep -c "^branch refs/heads/<branch-name>$" || true)
+```
+
+If `STILL_CHECKED_OUT` is non-zero, skip branch deletion and note it in the report.
+Otherwise:
+
 ```bash
 git -C "<repo-root>" branch -D "<branch-name>" 2>&1 || true
 echo "  Deleted branch: <branch-name>"
 ```
-
-Skip if the branch is the currently checked-out branch of the main worktree
-(check with `git -C <repo-root> branch --show-current`).
 
 ### 6e. Remove the .claude/worktrees entry
 

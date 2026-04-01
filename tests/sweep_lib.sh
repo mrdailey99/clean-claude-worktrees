@@ -70,3 +70,16 @@ is_main_worktree() {
   local repo_root="${2%/}"
   [[ "$wt_path" == "$repo_root" ]]
 }
+
+# Return 0 if the current directory is inside the given worktree path.
+# Used to prevent sweeping the worktree the user's active session lives in.
+# Args: <worktree_path> <current_dir>
+session_inside_worktree() {
+  local wt_path="${1%/}"
+  local current_dir="${2%/}"
+  # Match if current_dir equals or is a subdirectory of wt_path
+  case "$current_dir" in
+    "$wt_path"|"$wt_path"/*) return 0 ;;
+  esac
+  return 1
+}
