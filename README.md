@@ -41,9 +41,17 @@ Remove-Item -Recurse $env:TEMP\sweep.zip, $env:TEMP\sweep-skill
 **Option 2 — git clone:**
 
 ```bash
+# macOS / Linux / Git Bash
 git clone https://github.com/mrdailey99/clean-claude-worktrees.git
 cd clean-claude-worktrees
 bash install.sh
+```
+
+```powershell
+# Windows (PowerShell)
+git clone https://github.com/mrdailey99/clean-claude-worktrees.git
+cd clean-claude-worktrees
+.\install.ps1
 ```
 
 **Option 3 — download zip manually:**
@@ -51,7 +59,13 @@ bash install.sh
 Download and extract the zip from GitHub, then from the extracted folder run:
 
 ```bash
+# macOS / Linux / Git Bash
 bash install.sh
+```
+
+```powershell
+# Windows (PowerShell)
+.\install.ps1
 ```
 
 > Don't copy the zip contents directly into `.claude/skills/` — the folder nesting won't be right.
