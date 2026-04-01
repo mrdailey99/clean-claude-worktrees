@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# sweep_lib.sh — portable logic extracted from the /sweep skill for unit testing
+
+# Parse /sweep arguments into variables:
+#   DAYS, ARCHIVE, DELETE_BRANCHES, REMOVE_TEMP, REMOVE_ALL, WORKTREE_NAMES
+parse_args() {
+  DAYS=7
+  ARCHIVE=true
+  DELETE_BRANCHES=false
+  REMOVE_TEMP=false
+  REMOVE_ALL=false
+  WORKTREE_NAMES=()
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --days)        DAYS="$2";          shift 2 ;;
+      --no-archive)  ARCHIVE=false;      shift   ;;
+      --delete-branches) DELETE_BRANCHES=true; shift ;;
+      --remove-temp) REMOVE_TEMP=true;   shift   ;;
+      --remove-all)  REMOVE_ALL=true;    shift   ;;
+      --*)           echo "Unknown flag: $1" >&2; return 1 ;;
+      *)             WORKTREE_NAMES+=("$1"); shift ;;
+    esac
+  done
+}
+
+# Return 0 (stale) if a worktree's last activity is older than DAYS days.
+# Args: <last_commit_epoch> <last_file_mtime_epoch> <days>
+is_stale() {
+  local commit_epoch="$1"
+  local file_epoch="$2"
+  local days="$3"
+  local cutoff=$(( $(date +%s) - days * 86400 ))
+
+  # Stale only when BOTH commit and file mtime are older than the cutoff
+  if [[ "$commit_epoch" -lt "$cutoff" && "$file_epoch" -lt "$cutoff" ]]; then
+    return 0  # stale
+  fi
+  return 1  # not stale
+}
+
+# Return 0 if a worktree name matches the filter list (or filter is empty = match all).
+# Args: <worktree_name> <filter_name...>
+matches_filter() {
+  local name="$1"; shift
+  local filters=("$@")
+  [[ ${#filters[@]} -eq 0 ]] && return 0   # no filter = match all
+  for f in "${filters[@]}"; do
+    [[ "$name" == "$f" ]] && return 0
+  done
+  return 1
+}
+
+# Return 0 if a path looks like the main worktree (i.e. equals the repo root).
+# Args: <worktree_path> <repo_root>
+is_main_worktree() {
+  local wt_path="${1%/}"
+  local repo_root="${2%/}"
+  [[ "$wt_path" == "$repo_root" ]]
+}
