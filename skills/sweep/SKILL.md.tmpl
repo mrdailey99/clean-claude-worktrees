@@ -127,26 +127,42 @@ regardless of the `--days` threshold.
 
 ## Step 3: Staleness Check
 
-For each worktree (from git worktree list), determine if it is stale:
+**Do NOT use `git log` commit timestamps for staleness.** A branch tip can predate
+the worktree's creation by months — using it would flag active worktrees as stale.
 
-```bash
-# Last commit date in the worktree
-git -C <worktree-path> log -1 --format="%ct" 2>/dev/null || echo "0"
+Instead, measure the three *activity* signals below and take the most recent:
 
-# Last file modification in worktree (excluding .git)
-find <worktree-path> -not -path '*/.git/*' -newer /tmp/sweep-ref-$(($(date +%s) - DAYS*86400)) \
-  -type f 2>/dev/null | wc -l
-```
-
-A worktree is **stale** when:
-- Its most recent git commit is older than `DAYS` days, AND
-- No files outside `.git/` have been modified within `DAYS` days
-
-Create the reference timestamp file:
 ```bash
 CUTOFF=$(( $(date +%s) - DAYS * 86400 ))
-touch -t $(date -d @$CUTOFF +%Y%m%d%H%M.%S 2>/dev/null || date -r $CUTOFF +%Y%m%d%H%M.%S 2>/dev/null) /tmp/sweep-ref 2>/dev/null || true
+
+# Signal 1: worktree directory mtime (updated when files are created/modified inside it)
+WT_MTIME=$(stat -c %Y "<worktree-path>" 2>/dev/null \
+        || stat -f %m "<worktree-path>" 2>/dev/null \
+        || echo 0)
+
+# Signal 2: git's internal worktree entry (.git/worktrees/<name>/gitdir is touched on access)
+GITDIR_ENTRY=$(git -C "<repo-root>" rev-parse --git-dir 2>/dev/null)/worktrees
+ENTRY_NAME=$(basename "$(cat "<worktree-path>/.git" 2>/dev/null | sed 's/gitdir: //')" \
+           | xargs dirname 2>/dev/null | xargs basename 2>/dev/null)
+GITDIR_MTIME=$(stat -c %Y "$GITDIR_ENTRY/$ENTRY_NAME/gitdir" 2>/dev/null \
+            || stat -f %m "$GITDIR_ENTRY/$ENTRY_NAME/gitdir" 2>/dev/null \
+            || echo 0)
+
+# Signal 3: .claude/worktrees entry mtime (written when Claude last used this worktree)
+CLAUDE_ENTRY="<repo-root>/.claude/worktrees/<entry-name>"
+CLAUDE_MTIME=$(stat -c %Y "$CLAUDE_ENTRY" 2>/dev/null \
+            || stat -f %m "$CLAUDE_ENTRY" 2>/dev/null \
+            || echo 0)
+
+# Most recent of the three signals
+MOST_RECENT=$(( WT_MTIME > GITDIR_MTIME ? WT_MTIME : GITDIR_MTIME ))
+MOST_RECENT=$(( MOST_RECENT > CLAUDE_MTIME ? MOST_RECENT : CLAUDE_MTIME ))
 ```
+
+A worktree is **stale** when `MOST_RECENT < CUTOFF`.
+
+Display the age using `MOST_RECENT`, not the commit date, so the reported age
+reflects real inactivity rather than when commits happened to be authored.
 
 Also mark as stale: orphaned Claude worktree records with no corresponding git path.
 

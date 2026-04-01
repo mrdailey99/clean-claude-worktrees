@@ -87,32 +87,32 @@ echo ""
 echo "=== is_stale ==="
 
 NOW=$(date +%s)
-OLD=$(( NOW - 10 * 86400 ))   # 10 days ago
-RECENT=$(( NOW - 1 * 86400 )) # 1 day ago
+OLD=$(( NOW - 10 * 86400 ))   # 10 days ago — older than the 7-day threshold
+RECENT=$(( NOW - 1 * 86400 )) # 1 day ago  — within the 7-day threshold
 
-# Both commit and file older than 7 days → stale
-assert_exit "both old → stale (exit 0)"     0  is_stale "$OLD"    "$OLD"    7
+# All three signals old → stale
+assert_exit "all signals old → stale"         0  is_stale "$OLD"    "$OLD"    "$OLD"    7
 
-# Commit old, file recent → not stale
-assert_exit "commit old, file recent → not stale (exit 1)"  1  is_stale "$OLD"    "$RECENT" 7
+# Any one signal recent → not stale (most recent wins)
+assert_exit "wt recent, rest old → not stale" 1  is_stale "$RECENT" "$OLD"    "$OLD"    7
+assert_exit "gitdir recent, rest old → not stale" 1 is_stale "$OLD" "$RECENT" "$OLD"    7
+assert_exit "claude entry recent, rest old → not stale" 1 is_stale "$OLD" "$OLD" "$RECENT" 7
 
-# Commit recent, file old → not stale
-assert_exit "commit recent, file old → not stale (exit 1)"  1  is_stale "$RECENT" "$OLD"    7
-
-# Both recent → not stale
-assert_exit "both recent → not stale (exit 1)"  1  is_stale "$RECENT" "$RECENT" 7
+# Key regression: old commit date does NOT affect result — only the three activity signals matter
+# (commit_epoch is no longer a parameter at all)
+assert_exit "all signals recent → not stale"  1  is_stale "$RECENT" "$RECENT" "$RECENT" 7
 
 # 1 second inside the threshold → not stale
 JUST_INSIDE=$(( NOW - 7 * 86400 + 2 ))
-assert_exit "1s inside threshold → not stale (exit 1)"  1  is_stale "$JUST_INSIDE" "$JUST_INSIDE" 7
+assert_exit "1s inside threshold → not stale" 1  is_stale "$JUST_INSIDE" "$JUST_INSIDE" "$JUST_INSIDE" 7
 
 # 1 hour outside the threshold → stale
 JUST_OUTSIDE=$(( NOW - 7 * 86400 - 3600 ))
-assert_exit "1h outside threshold → stale (exit 0)"    0  is_stale "$JUST_OUTSIDE" "$JUST_OUTSIDE" 7
+assert_exit "1h outside threshold → stale"    0  is_stale "$JUST_OUTSIDE" "$JUST_OUTSIDE" "$JUST_OUTSIDE" 7
 
 # Custom threshold
-assert_exit "custom 30-day threshold: 20-day-old worktree → not stale"  1  is_stale $(( NOW - 20*86400 )) $(( NOW - 20*86400 )) 30
-assert_exit "custom 30-day threshold: 31-day-old worktree → stale"      0  is_stale $(( NOW - 31*86400 )) $(( NOW - 31*86400 )) 30
+assert_exit "30-day threshold: 20-day-old → not stale" 1 is_stale $(( NOW - 20*86400 )) $(( NOW - 20*86400 )) $(( NOW - 20*86400 )) 30
+assert_exit "30-day threshold: 31-day-old → stale"     0 is_stale $(( NOW - 31*86400 )) $(( NOW - 31*86400 )) $(( NOW - 31*86400 )) 30
 
 # ─────────────────────────────────────────────
 echo ""

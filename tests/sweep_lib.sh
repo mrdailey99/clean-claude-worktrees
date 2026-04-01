@@ -24,19 +24,31 @@ parse_args() {
   done
 }
 
-# Return 0 (stale) if a worktree's last activity is older than DAYS days.
-# Args: <last_commit_epoch> <last_file_mtime_epoch> <days>
-is_stale() {
-  local commit_epoch="$1"
-  local file_epoch="$2"
-  local days="$3"
-  local cutoff=$(( $(date +%s) - days * 86400 ))
+# Return the most recent epoch across two or more activity signals.
+# Args: <epoch1> <epoch2> [epoch3 ...]
+latest_epoch() {
+  local max=0
+  for e in "$@"; do
+    [[ "$e" -gt "$max" ]] && max="$e"
+  done
+  echo "$max"
+}
 
-  # Stale only when BOTH commit and file mtime are older than the cutoff
-  if [[ "$commit_epoch" -lt "$cutoff" && "$file_epoch" -lt "$cutoff" ]]; then
-    return 0  # stale
-  fi
-  return 1  # not stale
+# Return 0 (stale) if a worktree's last *activity* is older than DAYS days.
+# Activity = most recent of: worktree dir mtime, .git/worktrees entry mtime,
+#            .claude/worktrees entry mtime. Commit date is intentionally excluded
+#            because a branch tip can predate the worktree's creation by months.
+# Args: <worktree_dir_mtime_epoch> <gitdir_entry_mtime_epoch> <claude_entry_mtime_epoch> <days>
+is_stale() {
+  local wt_mtime="$1"
+  local gitdir_mtime="$2"
+  local claude_mtime="$3"
+  local days="$4"
+  local cutoff=$(( $(date +%s) - days * 86400 ))
+  local most_recent
+  most_recent=$(latest_epoch "$wt_mtime" "$gitdir_mtime" "$claude_mtime")
+
+  [[ "$most_recent" -lt "$cutoff" ]]
 }
 
 # Return 0 if a worktree name matches the filter list (or filter is empty = match all).
