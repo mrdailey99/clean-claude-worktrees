@@ -71,6 +71,30 @@ is_main_worktree() {
   [[ "$wt_path" == "$repo_root" ]]
 }
 
+# Encode an absolute path into the format Claude Code uses for ~/.claude/projects/ names.
+# Every non-alphanumeric, non-dash character is replaced with '-'.
+# On Windows the path starts with a drive letter (e.g. C:\...) which produces C--...
+# On Unix/Git Bash paths start with / which is stripped before encoding.
+# Args: <absolute-path>
+encode_project_path() {
+  local path="$1"
+  # Strip leading slash on Unix-style paths (Git Bash on Windows uses /c/Users/...)
+  path="${path#/}"
+  # Replace every char that is not [a-zA-Z0-9-] with '-'
+  echo "$path" | sed 's/[^a-zA-Z0-9-]/-/g'
+}
+
+# Return the Claude Code project directory name for a given worktree path,
+# or search ~/.claude/projects/ for a matching entry by worktree entry name.
+# Args: <worktree-entry-name>
+find_project_dir() {
+  local entry_name="$1"
+  local projects_dir="${HOME}/.claude/projects"
+  ls "$projects_dir" 2>/dev/null \
+    | grep -E -- "(^|[-])${entry_name}$" \
+    | head -1
+}
+
 # Return 0 if the current directory is inside the given worktree path.
 # Used to prevent sweeping the worktree the user's active session lives in.
 # Args: <worktree_path> <current_dir>

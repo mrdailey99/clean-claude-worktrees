@@ -152,6 +152,27 @@ assert_exit "pwd is unrelated → not inside"               1  session_inside_wo
 
 # ─────────────────────────────────────────────
 echo ""
+echo "=== encode_project_path ==="
+
+# Unix/Git Bash style paths (leading / stripped, then non-alnum → -)
+assert_eq "unix path basic" \
+  "c-Users-me-git-repo--claude-worktrees-feature-foo" \
+  "$(encode_project_path "/c/Users/me/git/repo/.claude/worktrees/feature-foo")"
+
+assert_eq "path with spaces" \
+  "c-Users-me-git-Provar-Manager-test-manager--claude-worktrees-awesome-allen" \
+  "$(encode_project_path "/c/Users/me/git/Provar Manager/test-manager/.claude/worktrees/awesome-allen")"
+
+assert_eq "path with dots only in .claude" \
+  "c-Users-me-git-my-repo--claude-worktrees-fix-typo" \
+  "$(encode_project_path "/c/Users/me/git/my-repo/.claude/worktrees/fix-typo")"
+
+assert_eq "existing dashes in entry name preserved" \
+  "c-Users-me-git-repo--claude-worktrees-xenodochial-elgamal" \
+  "$(encode_project_path "/c/Users/me/git/repo/.claude/worktrees/xenodochial-elgamal")"
+
+# ─────────────────────────────────────────────
+echo ""
 echo "─────────────────────────────────────"
 echo "Results: $PASS passed, $FAIL failed"
 

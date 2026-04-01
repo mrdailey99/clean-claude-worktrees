@@ -251,29 +251,39 @@ If `REMOVE_ALL=true`:
 
 Process each confirmed worktree in order. For each one:
 
-### 6a. Archive Claude session (if ARCHIVE=true and session linked)
+### 6a. Archive Claude session (if ARCHIVE=true)
 
-Look up the session file in `~/.claude/sessions/` or `~/.claude/history.jsonl`:
+Claude Code stores conversation history in `~/.claude/projects/` as one directory
+per working directory, with the path encoded by replacing every non-alphanumeric
+character with `-`. For example:
+`C:\Users\me\git\repo\.claude\worktrees\feature-foo`
+→ `C--Users-me-git-repo--claude-worktrees-feature-foo`
+
+Find the project directory for this worktree by matching on the encoded leaf name:
 ```bash
-# Check for session directory
-ls ~/.claude/sessions/ 2>/dev/null | grep "<session-id>"
+ENTRY_NAME="<worktree-entry-name>"   # e.g. feature-foo
+PROJECTS_DIR="$HOME/.claude/projects"
 
-# Check history file for conversation references
-grep -l "<session-id>" ~/.claude/sessions/ 2>/dev/null
+# Match any project directory whose name ends with the encoded worktree entry
+PROJECT_DIR=$(ls "$PROJECTS_DIR" 2>/dev/null \
+  | grep -- "-${ENTRY_NAME}$\|--${ENTRY_NAME}$" \
+  | head -1)
 ```
 
-Archive by moving the session data to an archive directory:
+If found, move the entire project directory to an archive location:
 ```bash
-ARCHIVE_DIR="$HOME/.claude/archive/sessions"
-mkdir -p "$ARCHIVE_DIR"
-SESSION_FILE="$HOME/.claude/sessions/<session-id>"
-if [ -f "$SESSION_FILE" ]; then
-  mv "$SESSION_FILE" "$ARCHIVE_DIR/<session-id>.archived-$(date +%Y%m%d)"
-  echo "  Archived session: <session-id>"
+if [ -n "$PROJECT_DIR" ]; then
+  ARCHIVE_DIR="$HOME/.claude/archive/projects"
+  mkdir -p "$ARCHIVE_DIR"
+  mv "$PROJECTS_DIR/$PROJECT_DIR" "$ARCHIVE_DIR/${PROJECT_DIR}.archived-$(date +%Y%m%d)"
+  echo "  Archived session: $PROJECT_DIR"
+else
+  echo "  No session found for: $ENTRY_NAME (already removed or never created)"
 fi
 ```
 
-If the session file is not found, note it but continue (do not fail).
+Moving the project directory removes it from Claude Code's session list immediately.
+`--no-archive` skips this step entirely, leaving the session visible in Claude Code.
 
 ### 6b. Remove temp files (if REMOVE_TEMP=true)
 
