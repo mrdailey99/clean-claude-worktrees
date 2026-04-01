@@ -11,6 +11,7 @@ if [ ! -d "$SKILL_SRC" ]; then
 fi
 
 mkdir -p "$DEST"
+rm -rf "$DEST/sweep"
 cp -r "$SKILL_SRC" "$DEST/sweep"
 echo "Installed: $DEST/sweep"
 echo "The /sweep skill is ready. Start a new Claude Code conversation to use it."

@@ -32,8 +32,8 @@ curl -fsSL https://github.com/mrdailey99/clean-claude-worktrees/archive/refs/hea
 # Windows (PowerShell) — install only; Git Bash or WSL still required to run the skill
 Invoke-WebRequest https://github.com/mrdailey99/clean-claude-worktrees/archive/refs/heads/master.zip `
   -OutFile $env:TEMP\sweep.zip
-Expand-Archive $env:TEMP\sweep.zip $env:TEMP\sweep-skill
-Copy-Item -Recurse $env:TEMP\sweep-skill\clean-claude-worktrees-master\skills\sweep `
+Expand-Archive $env:TEMP\sweep.zip $env:TEMP\sweep-skill -Force
+Copy-Item -Recurse -Force $env:TEMP\sweep-skill\clean-claude-worktrees-master\skills\sweep `
   $env:USERPROFILE\.claude\skills\sweep
 Remove-Item -Recurse $env:TEMP\sweep.zip, $env:TEMP\sweep-skill
 ```
